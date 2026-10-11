@@ -1,5 +1,5 @@
 {
-  "name": "dsh-plugin-english",
+  "name": "chinese2english",
   "version": "0.1.0",
   "description": "Universal English translation patch for DeepSeek Harness third-party plugins",
   "type": "module",
@@ -46,10 +46,10 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://git.oiupoyt.space/oiupoyt/dsh-plugin-english.git"
+    "url": "https://git.oiupoyt.space/oiupoyt/chinese2english.git"
   },
   "bugs": {
-    "url": "https://git.oiupoyt.space/oiupoyt/dsh-plugin-english/issues"
+    "url": "https://git.oiupoyt.space/oiupoyt/chinese2english/issues"
   },
-  "homepage": "https://git.oiupoyt.space/oiupoyt/dsh-plugin-english#readme"
+  "homepage": "https://git.oiupoyt.space/oiupoyt/chinese2english#readme"
 }

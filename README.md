@@ -1,4 +1,4 @@
-# dsh-plugin-english
+# chinese2english
 
 > Universal English translation patch for [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) third-party plugins.
 
@@ -10,7 +10,7 @@ Automatically intercepts and translates Chinese UI strings, buttons, dialogs, an
 
 Most DeepSeek Harness community plugins are authored in Chinese with either missing English dictionaries or hardcoded Chinese strings inside their React components. Even when your DSH interface is set to English, those plugins remain in Chinese.
 
-**`dsh-plugin-english`** fixes this globally across all your installed plugins using an intelligent real-time translation observer and comprehensive technical DSH dictionary.
+**`chinese2english`** fixes this globally across all your installed plugins using an intelligent real-time translation observer and comprehensive technical DSH dictionary.
 
 ---
 
@@ -28,10 +28,10 @@ Most DeepSeek Harness community plugins are authored in Chinese with either miss
 Install directly with the official DSH CLI:
 
 ```bash
-dsh plugin --profile web add dsh-plugin-english
+dsh plugin --profile web add chinese2english
 ```
 
-*(To remove later: `dsh plugin --profile web remove dsh-plugin-english`)*
+*(To remove later: `dsh plugin --profile web remove chinese2english`)*
 
 ---
 

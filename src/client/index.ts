@@ -1,6 +1,6 @@
 import { DICTIONARY, SORTED_PAIRS, DYNAMIC_PATTERNS } from "./dictionary.js";
 
-export const name = "dsh-plugin-english-client";
+export const name = "chinese2english-client";
 export const inject = ["locale"];
 
 const CHINESE_REGEX = /[\u4e00-\u9fa5]/;
@@ -179,7 +179,7 @@ function enforceEnglishStorage() {
 }
 
 export function apply(ctx: any) {
-  console.log("[dsh-plugin-english] Activating English locale & translation engine...");
+  console.log("[chinese2english] Activating English locale & translation engine...");
 
   enforceEnglishStorage();
 

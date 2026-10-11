@@ -1,4 +1,4 @@
-# dsh-plugin-english bundle patch
+# chinese2english bundle patch
 - insert:
-    - id: english-translator
-      name: 'dsh-plugin-english'
+    - id: chinese2english
+      name: 'chinese2english'
