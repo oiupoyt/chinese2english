@@ -1,0 +1,4 @@
+# dsh-plugin-english bundle patch
+- insert:
+    - id: english-translator
+      name: 'dsh-plugin-english'

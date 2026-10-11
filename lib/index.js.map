@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../src/index.ts"],
+  "sourcesContent": ["export const name = \"dsh-plugin-english\";\nexport const inject = [];\n\nexport function apply(ctx: any) {\n  // Backend service hook - client bundle handles DOM & Locale translations\n}\n"],
+  "mappings": "AAAO,MAAM,OAAO;AACb,MAAM,SAAS,CAAC;AAEhB,SAAS,MAAM,KAAU;AAEhC;",
+  "names": []
+}
