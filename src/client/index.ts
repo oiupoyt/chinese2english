@@ -254,12 +254,11 @@ export function apply(ctx: any) {
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ["lang"] });
   }
 
-  // 3. Start DOM translation engine
-  startDOMTranslator();
+  // 3. DOM translation engine (disabled: direct React DOM mutation causes Market UI crash)
+  // startDOMTranslator();
 }
 
 // Start immediately on script load as well
 if (typeof window !== "undefined") {
   enforceEnglishStorage();
-  startDOMTranslator();
 }
