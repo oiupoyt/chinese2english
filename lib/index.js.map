@@ -1,7 +1,7 @@
 {
   "version": 3,
   "sources": ["../src/index.ts"],
-  "sourcesContent": ["export const name = \"chinese2english\";\nexport const inject = [];\n\nexport function apply(ctx: any) {\n  // Backend service hook - client bundle handles DOM & Locale translations\n}\n"],
-  "mappings": "AAAO,MAAM,OAAO;AACb,MAAM,SAAS,CAAC;AAEhB,SAAS,MAAM,KAAU;AAEhC;",
+  "sourcesContent": ["import { spawn } from \"node:child_process\";\nimport { fileURLToPath } from \"node:url\";\nimport { dirname, join } from \"node:path\";\n\nexport const name = \"chinese2english\";\nexport const inject = [];\n\nexport function apply(ctx: any) {\n  // Automatically patch third-party plugins to native English on startup\n  try {\n    const currentDir = dirname(fileURLToPath(import.meta.url));\n    const scriptPath = join(currentDir, \"..\", \"patch-plugins.py\");\n    const child = spawn(\"python3\", [scriptPath], { stdio: \"ignore\" });\n    child.on(\"close\", (code) => {\n      console.log(`[chinese2english] Plugin patcher settled (exit ${code}).`);\n    });\n  } catch (err) {\n    console.error(\"[chinese2english] Plugin patcher error:\", err);\n  }\n}\n"],
+  "mappings": "AAAA,SAAS,aAAa;AACtB,SAAS,qBAAqB;AAC9B,SAAS,SAAS,YAAY;AAEvB,MAAM,OAAO;AACb,MAAM,SAAS,CAAC;AAEhB,SAAS,MAAM,KAAU;AAE9B,MAAI;AACF,UAAM,aAAa,QAAQ,cAAc,YAAY,GAAG,CAAC;AACzD,UAAM,aAAa,KAAK,YAAY,MAAM,kBAAkB;AAC5D,UAAM,QAAQ,MAAM,WAAW,CAAC,UAAU,GAAG,EAAE,OAAO,SAAS,CAAC;AAChE,UAAM,GAAG,SAAS,CAAC,SAAS;AAC1B,cAAQ,IAAI,kDAAkD,IAAI,IAAI;AAAA,IACxE,CAAC;AAAA,EACH,SAAS,KAAK;AACZ,YAAQ,MAAM,2CAA2C,GAAG;AAAA,EAC9D;AACF;",
   "names": []
 }

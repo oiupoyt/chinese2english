@@ -38,6 +38,7 @@
     }
   },
   "scripts": {
+    "patch": "python3 patch-plugins.py",
     "build": "node scripts/build.mjs"
   },
   "peerDependencies": {
