@@ -30,16 +30,16 @@
       "patch": "./cordis.patch.yml"
     },
     "client": {
-      "immediately": true,
       "inject": [
-        "@deepseek-ai/dsh-client-locale"
+        "locale"
       ],
       "platform": "web"
     }
   },
   "scripts": {
-    "patch": "python3 patch-plugins.py",
-    "build": "node scripts/build.mjs"
+    "dict": "node scripts/merge-dict.mjs",
+    "build": "node scripts/build.mjs",
+    "build:dict": "node scripts/merge-dict.mjs && node scripts/build.mjs"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": ">=4.0.0"
