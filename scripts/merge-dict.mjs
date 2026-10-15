@@ -32,6 +32,15 @@ if (existsSync(extraPath)) {
   for (const [zh, en] of Object.entries(data)) pairs.set(zh, en);
 }
 
+// Author-authored `{ zh, en }` pairs lifted from plugin locale maps. This is the
+// highest-quality source: a human wrote both sides, so it beats every
+// machine-harvested pair and is merged last.
+const localePairsPath = join(root, "locale-pairs.json");
+if (existsSync(localePairsPath)) {
+  const data = JSON.parse(readFileSync(localePairsPath, "utf8"));
+  for (const [zh, en] of Object.entries(data)) pairs.set(zh, en);
+}
+
 // A handful of upstream entries are Malay, not English. Emitting them would
 // inject foreign words into an English UI, so they are replaced by name.
 const NON_ENGLISH = new Map([

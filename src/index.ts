@@ -1,3 +1,4 @@
+import { translatesEndpoint, translateJson } from "./json.js";
 import { translateScript } from "./rewrite.js";
 
 export const name = "chinese2english";
@@ -16,21 +17,11 @@ function isScriptUrl(url: string): boolean {
   return JS_URL.test(url);
 }
 
-/**
- * Translates Chinese UI text at the bundle transport layer.
- *
- * Every third-party plugin bundle is served through `/plugins/...` by the
- * clientModules service, and combination bundles carry several plugins in one
- * body. Intercepting the response here reaches all of them at once, before any
- * code runs, without touching React trees or the locale store.
- *
- * `bundleResource` yields the body as a Buffer, so the wrapper decodes UTF-8,
- * rewrites, and hands the bytes back in the shape the server expects.
- */
-export function apply(ctx: any) {
+/** Rewrites `/plugins/...` JavaScript responses in place. */
+function wrapBundles(ctx: any) {
   const registry = ctx.clientModules;
   if (!registry || typeof registry.bundleResource !== "function") {
-    console.error("[chinese2english] clientModules.bundleResource unavailable; translation disabled");
+    console.error("[chinese2english] clientModules.bundleResource unavailable; bundle translation disabled");
     return;
   }
 
@@ -81,4 +72,51 @@ export function apply(ctx: any) {
       return response;
     }
   };
+}
+
+/**
+ * Rewrites server-authored UI copy returned by the `/api` RPC gateway.
+ *
+ * Plugin descriptors and model/provider names reach the browser as JSON, not as
+ * bundle strings, so the bundle seam cannot see them. The gateway resolves its
+ * own `dispatchRpc` per request, so overriding the instance method intercepts
+ * every `/api` call without claiming the interceptor slot the gateway owns.
+ */
+function wrapRpc(ctx: any) {
+  const gateway = ctx.get("typertGateway");
+  if (!gateway || typeof gateway.dispatchRpc !== "function") {
+    console.warn("[chinese2english] typertGateway unavailable; API copy left untranslated");
+    return;
+  }
+
+  const original = gateway.dispatchRpc;
+
+  gateway.dispatchRpc = async function (endpoint: string, ...rest: any[]) {
+    const result = await original.call(this, endpoint, ...rest);
+    if (!translatesEndpoint(endpoint)) return result;
+    if (!result || typeof result !== "object" || result.ok !== true) return result;
+    try {
+      const value = translateJson(result.value);
+      return value === result.value ? result : { ...result, value };
+    } catch (error) {
+      console.error(`[chinese2english] could not translate ${endpoint}:`, error);
+      return result;
+    }
+  };
+}
+
+/**
+ * Renders Chinese UI text as English.
+ *
+ * Two seams, because the text arrives two ways: plugin bundle source over
+ * `/plugins/...`, and server-authored copy over `/api`. Both are rewritten
+ * before the bytes leave the process, so no client-side ordering, DOM walking,
+ * or React tree mutation is involved.
+ */
+export function apply(ctx: any) {
+  wrapBundles(ctx);
+
+  // The gateway may not be mounted in every composition; load without it.
+  if (ctx.get("typertGateway") !== undefined) wrapRpc(ctx);
+  else ctx.inject(["typertGateway"], (gatewayCtx: any) => wrapRpc(gatewayCtx));
 }
