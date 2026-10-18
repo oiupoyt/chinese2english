@@ -3,6 +3,11 @@ import { decodeRaw, encodeValue, isObjectKeyPosition, scanLiterals } from "./str
 
 const CHINESE = /[\u4e00-\u9fa5]/;
 
+// A `\uXXXX` escape whose code unit is a CJK character. Used only as a cheap
+// gate before scanning, because a bundle may hold Chinese exclusively in this
+// escaped form.
+const ESCAPED_CJK = /\\u(?:4[0-9a-f]|5[0-9a-f]|6[0-9a-f]|7[0-9a-f]|8[0-9a-f]|9[0-9a-f]|[3-9][0-9a-f]{3})/i;
+
 // Longest key first so the segmentation below prefers `缓存命中率` over `缓存命中`.
 const KEYS = Object.keys(DICTIONARY).sort((a, b) => b.length - a.length);
 
@@ -176,7 +181,10 @@ export function encodeInterpolated(value: string, quote: string): string {
  * alone: translating `{ "中文": 1 }` would break the lookup that reads it.
  */
 export function rewriteScript(source: string): string {
-  if (!hasChinese(source)) return source;
+  // Bundlers emit non-ASCII as `\uXXXX` escapes, so the source can be entirely
+  // Chinese while containing no CJK character. `hasChinese(source)` is therefore
+  // not a valid cheap gate; the escape form has to be recognised too.
+  if (!hasChinese(source) && !ESCAPED_CJK.test(source)) return source;
 
   const spans = scanLiterals(source);
   let out = "";
