@@ -40,7 +40,9 @@
     "mt": "node scripts/mt-fill.mjs",
     "dict": "node scripts/merge-dict.mjs && node scripts/merge-comments.mjs",
     "build": "node scripts/build.mjs",
-    "build:dict": "node scripts/mt-fill.mjs && node scripts/merge-dict.mjs && node scripts/merge-comments.mjs && node scripts/build.mjs"
+    "build:dict": "node scripts/mt-fill.mjs && node scripts/merge-dict.mjs && node scripts/merge-comments.mjs && node scripts/build.mjs",
+    "served": "node scripts/served.mjs",
+    "measure": "tsx scripts/measure.mts"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": ">=4.0.0"

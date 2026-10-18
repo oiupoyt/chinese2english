@@ -52,12 +52,14 @@ The client half does one thing: it selects the `en` locale through
 - Text rendered inside an `<img>`, canvas, or other non-text payload.
 - Content fetched from a third-party server at runtime (announcements, remote
   catalogs) rather than from DSH itself.
-- The long tail of one-off strings the dictionary does not yet cover.
+- Chinese inside regular expressions that match Chinese *input*. `/失败|错误|无法/`
+  classifies a status message and `/^[一-龥]{2}$/` validates a two-character name;
+  translating those would change plugin behaviour instead of removing text.
+  This is 111 characters across four bundles, all of it code rather than copy.
 
-The shipped dictionary holds roughly 1,570 entries. Coverage is concentrated on
-strings that appear repeatedly; rare one-off sentences are usually left in
-Chinese, which is why the all-or-nothing rule matters.
-
+Everything the interface renders is translated. Measured through the runtime
+path over the bundles a live instance served: Chinese in string literals
+50,399 → 0, and Chinese anywhere in the served bytes 55,345 → 111.
 
 ---
 
@@ -77,7 +79,7 @@ is installed before the first bundle request.
 ## Development
 
 ```bash
-npm run dict    # rebuild src/dictionary.json from its sources
+npm run dict    # rebuild the dictionaries from their sources
 npm run build   # bundle the server and client halves into lib/
 ```
 
@@ -86,11 +88,37 @@ Dictionary sources, merged in this order (later wins):
 1. `dshmarket_dict.json` — harvested pairs.
 2. `UI_TRANSLATIONS` in `patch-plugins.py` — harvested pairs.
 3. `src/dictionary.extra.json` — curated entries.
-4. `locale-pairs.json` — author-written `{ zh, en }` pairs lifted from plugin
+4. `src/dictionary.mt.json` — machine translations of harvested literals.
+5. `src/dictionary.residual.json` — literals measured as still untranslated.
+6. `locale-pairs.json` — author-written `{ zh, en }` pairs lifted from plugin
    locale maps; highest quality, so it overrides everything above.
+
+Comments are a separate dictionary, `src/dictionary.comments.json`, built by
+`scripts/merge-comments.mjs`. A comment is replaced only on an exact
+whole-comment match, which keeps the box-drawing runs and `*` alignment that
+give those notes their structure intact.
 
 Add or fix translations in `src/dictionary.extra.json`, then run
 `npm run dict && npm run build`.
+
+### Measuring coverage
+
+Progress was over-reported twice, both times by measuring the wrong thing, so
+measurement is scripted rather than done by eye:
+
+```bash
+node scripts/served.mjs /tmp/boot.html served.json   # resolve served bundles
+npm run measure served.json                          # count Chinese left
+```
+
+Save the boot HTML from a running instance first (`/?token=…`), because the
+served set is what reaches the browser. Two traps these scripts close:
+
+- **Scan the served set, not a plugin root.** 55 of the 58 bundles live in the
+  dsh install tree. A scan of the profile tree alone reports nearly everything
+  translated while whole screens stay Chinese.
+- **Decode before counting.** Bundlers emit non-ASCII as `\uXXXX`, so a bundle
+  can be entirely Chinese while containing no CJK character at all.
 
 ---
 
