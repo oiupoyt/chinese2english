@@ -1,4 +1,5 @@
 import DICTIONARY from "./dictionary.json";
+import COMMENTS from "./dictionary.comments.json";
 import { decodeRaw, encodeValue, isObjectKeyPosition, scanLiterals } from "./strings.js";
 
 const CHINESE = /[\u4e00-\u9fa5]/;
@@ -174,11 +175,15 @@ export function encodeInterpolated(value: string, quote: string): string {
 }
 
 /**
- * Rewrites Chinese UI text inside JavaScript string literals.
+ * Rewrites Chinese UI text inside JavaScript string literals, and Chinese
+ * inside source comments.
  *
  * Returns the original string unchanged when nothing was translated, so the
  * caller can skip rebuilding the response. Object keys are deliberately left
  * alone: translating `{ "中文": 1 }` would break the lookup that reads it.
+ *
+ * Comments are rewritten in the gaps between literals, which is where the
+ * scanner leaves them.
  */
 export function rewriteScript(source: string): string {
   // Bundlers emit non-ASCII as `\uXXXX` escapes, so the source can be entirely
@@ -195,18 +200,85 @@ export function rewriteScript(source: string): string {
     if (isObjectKeyPosition(source, span)) continue;
 
     const value = decodeRaw(span.raw);
-    if (!hasChinese(value)) continue;
+    // A stylesheet literal may hold Chinese only in its comments, which the
+    // dictionary cannot cover; translate those bodies first.
+    const commented = rewriteComments(value);
+    if (!hasChinese(commented) && commented === value) continue;
 
     // `${...}` is only an interpolation inside a template literal.
-    const next = span.quote === "`" ? substituteInterpolated(value) : substitute(value);
+    const substituted = span.quote === "`" ? substituteInterpolated(commented) : substitute(commented);
+    const next = substituted === commented ? commented : substituted;
     if (next === value) continue;
 
-    out += source.slice(cursor, span.start) + span.quote + encodeInterpolated(next, span.quote) + span.quote;
+    // The gap before this literal is ordinary source, so any comment there is
+    // translated too. Only gaps are passed to rewriteComments: running it over
+    // the assembled output would also scan literal contents, where a URL like
+    // `https://…` reads as a line comment.
+    out += rewriteComments(source.slice(cursor, span.start)) + span.quote + encodeInterpolated(next, span.quote) + span.quote;
     cursor = span.end;
     changed = true;
   }
 
-  return changed ? out + source.slice(cursor) : source;
+  out += rewriteComments(source.slice(cursor));
+
+  return out === source ? source : out;
+}
+
+/**
+ * Translates whole `//` and `/* ... *​/` comments inside a decoded literal.
+ *
+ * The last Chinese in the served bundles sits in code comments: notes the
+ * plugin authors wrote about why a module exists and which bug it fixed. They
+ * never render, but leaving them Chinese means the bundle still ships Chinese,
+ * so they are translated too.
+ *
+ * Only a whole-comment exact match is replaced. Partial replacement inside a
+ * comment could reflow the box-drawing runs and the `*` alignment that give
+ * these notes their structure, and a mangled comment can break the bundle.
+ */
+export function rewriteComments(text: string): string {
+  if (!text.includes("//") && !text.includes("/*")) return text;
+  let out = "";
+  let cursor = 0;
+  let changed = false;
+
+  while (cursor < text.length) {
+    const openBlock = text.indexOf("/*", cursor);
+    const openLine = text.indexOf("//", cursor);
+    let open: number;
+    let block: boolean;
+    if (openBlock < 0 && openLine < 0) break;
+    if (openBlock >= 0 && (openLine < 0 || openBlock < openLine)) {
+      open = openBlock;
+      block = true;
+    } else {
+      open = openLine;
+      block = false;
+    }
+
+    let end: number;
+    if (block) {
+      const close = text.indexOf("*/", open + 2);
+      if (close < 0) break;
+      end = close + 2;
+    } else {
+      const nl = text.indexOf("\n", open);
+      end = nl < 0 ? text.length : nl;
+    }
+
+    const comment = text.slice(open, end);
+    const hit = COMMENTS[comment];
+    out += text.slice(cursor, open);
+    if (hit !== undefined && hit !== comment) {
+      out += hit;
+      changed = true;
+    } else {
+      out += comment;
+    }
+    cursor = end;
+  }
+
+  return changed ? out + text.slice(cursor) : text;
 }
 
 /** Compiles the candidate so a bad rewrite can never reach the browser. */
