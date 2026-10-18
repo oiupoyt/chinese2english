@@ -12,6 +12,57 @@ export interface LiteralSpan {
   raw: string;
 }
 
+/**
+ * Finds the index just past the string literal starting at `start`.
+ *
+ * `depth` tracks unclosed `${` inside a template literal. While inside an
+ * interpolation the content is code again, so nested strings and nested
+ * template literals have to be skipped whole: otherwise
+ * `` `a ${c ? `b` : ""}` `` ends at the inner backtick and the outer literal is
+ * handed to the rewriter as a truncated fragment.
+ *
+ * Returns the length of `src` when the literal is unterminated.
+ */
+function scanLiteralEnd(src: string, start: number): number {
+  const quote = src[start];
+  const n = src.length;
+  let depth = 0;
+  let j = start + 1;
+
+  while (j < n) {
+    const d = src[j];
+    if (d === "\\") {
+      j += 2;
+      continue;
+    }
+    if (quote === "`") {
+      if (d === "{" && src[j - 1] === "$") {
+        depth++;
+        j++;
+        continue;
+      }
+      if (depth > 0) {
+        if (d === "}") {
+          depth--;
+          j++;
+          continue;
+        }
+        if (d === '"' || d === "'" || d === "`") {
+          j = scanLiteralEnd(src, j);
+          continue;
+        }
+      } else if (d === "`") {
+        return j + 1;
+      }
+      j++;
+      continue;
+    }
+    if (d === quote) return j + 1;
+    j++;
+  }
+  return n;
+}
+
 export function scanLiterals(src: string): LiteralSpan[] {
   const out: LiteralSpan[] = [];
   const n = src.length;
@@ -55,19 +106,10 @@ export function scanLiterals(src: string): LiteralSpan[] {
       }
     }
     if (c === '"' || c === "'" || c === "`") {
-      let j = i + 1;
-      while (j < n) {
-        const d = src[j];
-        if (d === "\\") {
-          j += 2;
-          continue;
-        }
-        if (d === c) break;
-        j++;
-      }
-      if (j < n) {
-        out.push({ start: i, end: j + 1, quote: c, raw: src.slice(i + 1, j) });
-        i = j + 1;
+      const end = scanLiteralEnd(src, i);
+      if (end <= n && src[end - 1] === c) {
+        out.push({ start: i, end, quote: c, raw: src.slice(i + 1, end - 1) });
+        i = end;
         lastSig = c;
         continue;
       }
