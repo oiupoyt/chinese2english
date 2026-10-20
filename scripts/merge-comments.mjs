@@ -1,14 +1,16 @@
 // Builds src/dictionary.comments.json from the translated comments.
 //
-// Two shapes feed this and both become whole delimited comments, which is what
-// the rewriter matches:
-//   - Comment BODIES (text between `/*` and `*/`) from the stylesheet pass,
-//     re-wrapped in their delimiters.
-//   - Whole comments FROM the code-comment pass, already delimited.
+// The committed dictionary is the source of truth: it is loaded first, then any
+// newer translation passes overlay it. Earlier this read only the scratch files
+// in ~/.cache, so once those were cleared a rebuild silently produced a smaller
+// dictionary and translated comments reverted to Chinese.
 //
-// Inputs: ~/.cache/c2e/cmt-authored.json  {wholeComment: translatedComment}
-//         ~/.cache/c2e/css-authored.json  {body: translatedBody}
-// Output: src/dictionary.comments.json    {wholeComment: translatedComment}
+// Overlays, when present:
+//   ~/.cache/c2e/cmt-authored.json  {wholeComment: translatedComment}
+//   ~/.cache/c2e/css-authored.json  {body: translatedBody}  (delimiters added)
+//   ~/.cache/c2e/c2-authored.json   {wholeComment: translatedComment}
+//
+// Output: src/dictionary.comments.json  {wholeComment: translatedComment}
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 
 const C2E = "/home/oiupoyt/.cache/c2e";
@@ -19,14 +21,26 @@ const BOX = /[\u2500-\u257f\u2580-\u259f]/g;
 const boxOf = (t) => (t.match(BOX) ?? []).sort().join("");
 const newlines = (t) => (t.match(/\n/g) ?? []).length;
 
-function load(name) {
+function load(name, fallback) {
   const path = `${C2E}/${name}`;
-  return existsSync(path) ? JSON.parse(readFileSync(path, "utf8")) : {};
+  if (!existsSync(path)) return fallback ?? {};
+  return JSON.parse(readFileSync(path, "utf8"));
 }
 
 const pairs = new Map();
+
+// Existing committed translations survive a rebuild.
+if (existsSync(OUT)) {
+  for (const [zh, en] of Object.entries(JSON.parse(readFileSync(OUT, "utf8")))) pairs.set(zh, en);
+}
+
 for (const [zh, en] of Object.entries(load("cmt-authored.json"))) pairs.set(zh, en);
-for (const [zh, en] of Object.entries(load("css-authored.json"))) pairs.set(`/*${zh}*/`, `/*${en}*/`);
+for (const [zh, en] of Object.entries(load("c2-authored.json"))) pairs.set(zh, en);
+for (const [zh, en] of Object.entries(load("css-authored.json"))) {
+  // A stylesheet body is stored without delimiters; the emitted key carries them.
+  if (zh.includes("/*")) pairs.set(zh, en);
+  else pairs.set(`/*${zh}*/`, `/*${en}*/`);
+}
 
 const clean = {};
 const reasons = { cjk: 0, latin: 0, identity: 0, box: 0, lines: 0, syntax: 0 };
